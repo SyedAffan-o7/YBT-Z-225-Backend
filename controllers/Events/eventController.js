@@ -4,10 +4,6 @@ const { updateEventStatusSchema } = require("../../validators/EventValidator");
 const { ZodError } = require("zod");
 
 exports.createEvent = async (req, res) => {
-  console.log("--- RAW REQUEST ---");
-  console.log("BODY:", req.body);
-  console.log("FILES:", req.files);
-  console.log("--------------------");
   try {
     const validatedData = req.body;
     const creatorId = req.user.id;
@@ -82,12 +78,10 @@ exports.updateEventStatus = async (req, res) => {
     };
 
     const { params, body } = updateEventStatusSchema.parse(dataToValidate);
-    console.log("Validated Data", params, body);
-    // 3. Destructure the CLEAN and VALIDATED data
+
     const { eventId } = params;
     const { status } = body;
 
-    // 4. Pass the validated data to the service (no parseInt needed!)
     const updatedEvent = await EventService.updateEventStatus(eventId, status);
 
     if (!updatedEvent) {
@@ -142,7 +136,6 @@ exports.getPublicEvents = async (req, res) => {
 exports.getAllEventsForAdmin = async (req, res) => {
   try {
     const userRole = "ADMIN";
-    console.log("THis is user role", userRole);
     const { cursor, limit, sortBy } = req.query;
     const options = {
       userRole,

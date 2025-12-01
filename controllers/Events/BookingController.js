@@ -5,7 +5,6 @@ exports.initiateBooking = async (req, res) => {
   try {
     const userId = req.user.id;
     const { eventId, items } = req.body; // Data is already validated by Zod
-    console.log("this is req.body", req.body);
     const orderDetails = await BookingService.initiateBooking(
       userId,
       eventId,

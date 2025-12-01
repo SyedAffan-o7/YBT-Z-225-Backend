@@ -60,7 +60,6 @@ exports.getAllEvents = async (options = {}) => {
     category,
     timeFilter = "upcoming",
   } = options;
-  console.log(userRole, "This is user role");
   let whereClause = {};
 
   if (userRole !== "ADMIN") {
@@ -105,8 +104,6 @@ exports.getAllEvents = async (options = {}) => {
   }
 
   const take = limit + 1;
-  console.time("prisma_findMany_events");
-
   const events = await prisma.event.findMany({
     where: whereClause,
     cursor: cursor ? { id: cursor } : undefined,
@@ -152,8 +149,6 @@ exports.getAllEvents = async (options = {}) => {
       },
     },
   });
-
-  console.timeEnd("prisma_findMany_events");
 
   let hasNextPage = false;
   if (events.length > limit) {

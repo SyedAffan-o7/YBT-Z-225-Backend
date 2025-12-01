@@ -25,15 +25,15 @@ const connectAndStart = async () => {
   }
 };
 
-cron.schedule("*/4 * * * *", async () => {
-  try {
-    console.log("🕒 Pinging database to keep it alive...");
-    await prisma.$queryRaw`SELECT 1`;
-    console.log("✅ Database pinged successfully.");
-  } catch (error) {
-    console.error("❌ Error pinging the database:", error);
-  }
-});
+// cron.schedule("*/4 * * * *", async () => {
+//   try {
+//     console.log("🕒 Pinging database to keep it alive...");
+//     await prisma.$queryRaw`SELECT 1`;
+//     console.log("✅ Database pinged successfully.");
+//   } catch (error) {
+//     console.error("❌ Error pinging the database:", error);
+//   }
+// });
 
 const shutdown = async (signal) => {
   console.log(`\n${signal} received. Shutting down gracefully...`);

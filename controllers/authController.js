@@ -74,7 +74,6 @@ exports.adminLogin = async (req, res) => {
         .json({ success: false, message: "Email and password required" });
 
     const result = await authService.loginAdmin(email, password);
-    console.log("THis is admin login result", result);
     res.status(200).json({
       success: true,
       message: "Admin login successful",

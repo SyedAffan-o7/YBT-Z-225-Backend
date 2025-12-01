@@ -9,16 +9,16 @@ app.use(express.json());
 app.use(cors());
 app.use(helmet());
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(
-      `[Request Logger] ${req.method} ${req.originalUrl} took ${duration}ms`
-    );
-  });
-  next();
-});
+// app.use((req, res, next) => {
+//   const start = Date.now();
+//   res.on("finish", () => {
+//     const duration = Date.now() - start;
+//     console.log(
+//       `[Request Logger] ${req.method} ${req.originalUrl} took ${duration}ms`
+//     );
+//   });
+//   next();
+// });
 
 app.use("/api/v1", apiRouter);
 
