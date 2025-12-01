@@ -52,7 +52,6 @@ exports.fetchLatestAdditions = async () => {
     },
     select: {
       id: true,
-      //slug: true,
       title: true,
       thumbnail: true,
       badges: true,
@@ -68,9 +67,41 @@ exports.getTotalCars = async () => {
 exports.getCarById = async (id) => {
   return prisma.car.findUnique({
     where: { id: id },
-    include: {
-      dealer: true,
-      //ownerships: true,
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      brand: true,
+      status: true,
+      sellingPrice: true,
+      ybtPrice: true,
+      thumbnail: true,
+      carImages: true,
+      videoUrls: true,
+      engine: true,
+      kmsDriven: true,
+      peakPower: true,
+      peakTorque: true,
+      exteriorColour: true,
+      doors: true,
+      driveType: true,
+      transmission: true,
+      seatingCapacity: true,
+      fuelType: true,
+      mileage: true,
+      registrationYear: true,
+      registrationNumber: true,
+      ownerCount: true,
+      insurance: true,
+      city: true,
+      badges: true,
+      specs: true,
+      features: true,
+      dealer: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 };
@@ -172,6 +203,7 @@ exports.getAllCars = async (options = {}) => {
       brand: true,
       badges: true,
       specs: true,
+      registrationYear: true,
       ybtPrice: true,
       tuningStage: true,
       thumbnail: true,
@@ -190,5 +222,36 @@ exports.getAllCars = async (options = {}) => {
   return {
     data: cars,
     pagination: { hasMore, nextCursor },
+  };
+};
+
+exports.getCarFilters = async () => {
+  // 1. Get all unique brands
+  const brandsRaw = await prisma.car.findMany({
+    where: { status: "AVAILABLE" }, // Only show brands that actually have cars for sale
+    select: { brand: true },
+    distinct: ["brand"],
+    orderBy: { brand: "asc" },
+  });
+
+  // 2. Get Min/Max Price and Year (for sliders/ranges)
+  const stats = await prisma.car.aggregate({
+    where: { status: "AVAILABLE" },
+    _min: {
+      sellingPrice: true,
+      registrationYear: true,
+    },
+    _max: {
+      sellingPrice: true,
+      registrationYear: true,
+    },
+  });
+
+  return {
+    brands: brandsRaw.map((b) => b.brand).filter(Boolean), // Returns ["Audi", "BMW", ...]
+    minPrice: stats._min.sellingPrice || 0,
+    maxPrice: stats._max.sellingPrice || 0,
+    minYear: stats._min.registrationYear || 2000,
+    maxYear: stats._max.registrationYear || new Date().getFullYear(),
   };
 };

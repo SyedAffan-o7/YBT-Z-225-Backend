@@ -41,6 +41,7 @@ exports.getHeroSlides = async (req, res) => {
           : "/");
 
       return {
+        id: slide.id,
         title: slide.customTitle ?? linkedItem?.title ?? "Untitled Slide",
         subtitle:
           slide.customSubtitle ?? truncate(linkedItem?.description, 100),
@@ -49,6 +50,8 @@ exports.getHeroSlides = async (req, res) => {
         assetType: assetType,
       };
     });
+
+    res.set("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
 
     // 3. Send the PROCESSED data
     res.status(200).json({

@@ -34,6 +34,8 @@ router.post(
   eventController.createEvent
 );
 
+router.get("/filters", eventController.getFilters);
+
 router.patch(
   "/:eventId/update-status",
   protect,

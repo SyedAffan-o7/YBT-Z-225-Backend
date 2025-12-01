@@ -120,14 +120,18 @@ exports.updateEventStatus = async (req, res) => {
 
 exports.getPublicEvents = async (req, res) => {
   try {
-    const { cursor, limit, sortBy, category } = req.query;
+    const { cursor, limit, sortBy, category, timeFilter } = req.query;
+    const filterType = timeFilter || "upcoming";
     const options = {
+      userRole: req.user?.role || "USER",
       category: category,
       limit: limit ? parseInt(limit) : 10,
       cursor: cursor ? parseInt(cursor) : undefined,
       sortBy: sortBy,
+      timeFilter: filterType,
     };
     const events = await EventService.getAllEvents(options);
+    res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({ success: true, ...events });
   } catch (error) {
     console.error("Get public events error:", error);
@@ -150,6 +154,18 @@ exports.getAllEventsForAdmin = async (req, res) => {
     res.status(200).json({ success: true, ...events });
   } catch (error) {
     console.error("Get all events for admin error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.getFilters = async (req, res) => {
+  try {
+    const filters = await EventService.getEventFilters();
+    res.set("Cache-Control", "public, max-age=3600");
+
+    res.status(200).json({ success: true, data: filters });
+  } catch (error) {
+    console.error("Error fetching event filters:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -196,3 +212,16 @@ exports.deleteEvent = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error." });
   }
 };
+
+// exports.getFilters = async (req, res) => {
+//   try {
+//     const filters = await EventService.getEventFilters();
+//     // Cache this! Brands don't change every second. Cache for 1 hour (3600s).
+//     res.set("Cache-Control", "public, max-age=3600");
+//     res.status(200).json({ success: true, data: filters });
+//   } catch (error) {
+//     res
+//       .status(500)
+//       .json({ success: false, message: "Failed to fetch filters" });
+//   }
+// };

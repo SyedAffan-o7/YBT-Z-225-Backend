@@ -97,6 +97,7 @@ exports.getCarById = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Car not found." });
     }
+    res.set("Cache-Control", "public, max-age=60");
     res.status(200).json({ success: true, data: car });
   } catch (err) {
     console.error(`Failed to get car ${req.params.id}:`, err);
@@ -181,6 +182,19 @@ exports.deleteCar = async (req, res) => {
         .json({ success: false, message: "Car not found." });
     }
     res.status(500).json({ success: false, message: "Failed to delete car." });
+  }
+};
+
+exports.getFilters = async (req, res) => {
+  try {
+    const filters = await carService.getCarFilters();
+    // Cache this! Brands don't change every second. Cache for 1 hour (3600s).
+    res.set("Cache-Control", "public, max-age=3600");
+    res.status(200).json({ success: true, data: filters });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch filters" });
   }
 };
 

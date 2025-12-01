@@ -226,12 +226,15 @@ model Car {
   workshop           Workshop?      @relation(fields: [workshopId], references: [id])
   ownerships         CarOwnership[]
 
+  @@index([collectionType, createdAt(sort: Desc)])
   @@index([designerId])
   @@index([workshopId])
   @@index([title])
   @@index([brand])
   @@index([createdAt, id])
   @@index([status])
+  @@index([sellingPrice])
+  @@index([registrationYear])
   @@index([dealerId, createdAt])
 }
 
@@ -356,8 +359,7 @@ model Event {
   applications EventApplication[]
 
   @@unique([startDate, id])
-  @@index([startDate(sort: Desc), id(sort: Desc)])
-  @@index([status, startDate(sort: Desc), id(sort: Desc)])
+  @@index([status, startDate, id])
   @@index([title, id])
   @@map("events")
 }
@@ -381,6 +383,8 @@ model TicketType {
   registrations EventRegistration[]
   orderItems    OrderItem[]
   event         Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, quantity, price])
 }
 
 model Order {

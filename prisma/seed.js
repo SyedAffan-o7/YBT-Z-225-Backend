@@ -329,148 +329,262 @@ const slugify = require("slugify");
 
 const prisma = new PrismaClient();
 
-// Configuration for how many NEW records to create each time the script runs
-const TOTAL_EVENTS_TO_ADD = 1000;
+// ================= CONFIGURATION =================
+const TOTAL_CARS = 1000;
+const TOTAL_EVENTS = 250;
+const BATCH_SIZE = 50; // Prevents DB timeouts
 
-// Helper function to get a random item from an array
-const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
+// ================= REAL DATA ASSETS =================
+// Using high-quality placeholder images that look like cars/events
+const CAR_IMAGES = [
+  "https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1503376763036-066120622c74?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1555215695-3004980adade?auto=format&fit=crop&w=800&q=80",
+  "https://images.unsplash.com/photo-1542282088-fe8426682b8f?auto=format&fit=crop&w=800&q=80",
+];
+
+const EVENT_IMAGES = [
+  "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80", // Concert
+  "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=800&q=80", // Show
+  "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80", // Crowd
+  "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80", // Tech
+];
+
+const SAMPLE_VIDEOS = [
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+];
+
+const BRANDS = [
+  "BMW",
+  "Audi",
+  "Mercedes-Benz",
+  "Porsche",
+  "Lamborghini",
+  "Ferrari",
+  "Toyota",
+  "Honda",
+  "Tata",
+  "Mahindra",
+];
+const CITIES = ["Mumbai", "Delhi", "Bangalore", "Pune", "Hyderabad", "Chennai"];
+
+// Helper to pick random item
+const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const getRandomSubarray = (arr, size) => {
+  const shuffled = arr.slice(0);
+  let i = arr.length,
+    temp,
+    index;
+  while (i--) {
+    index = Math.floor(Math.random() * (i + 1));
+    temp = shuffled[index];
+    shuffled[index] = shuffled[i];
+    shuffled[i] = temp;
+  }
+  return shuffled.slice(0, size);
+};
 
 async function main() {
-  console.log("🌱 Starting the transactional seeding process...");
+  console.log("🌱 Starting Superfast Seed...");
 
-  // --- Setup remains the same ---
-  console.log("👤 Ensuring admin user (ID: 5) exists...");
-  const adminUser = await prisma.user.upsert({
-    where: { id: 5 },
+  // 1. ADMIN USER
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@gmail.com" },
     update: {},
     create: {
-      id: 5,
       email: "admin@gmail.com",
-      name: "Admin",
+      name: "Super Admin",
       role: "ADMIN",
-      password: "a-secure-password-hash",
+      password: "hashed-password-here",
     },
   });
-  console.log(`✅ Using admin user with ID: ${adminUser.id}`);
+  console.log("✅ Admin Ready");
 
-  console.log("🏷️ Checking for event categories...");
-  let categories = await prisma.eventCategory.findMany();
-  if (categories.length === 0) {
-    console.log("No categories found, creating default ones...");
-    const categoryNames = [
-      "Music Festivals",
-      "Tech Conferences",
-      "Food & Drink",
-      "Art & Culture",
-      "Sports & Fitness",
-      "Business Workshops",
-      "Charity & Causes",
-      "Automotive Shows",
-    ];
-    categories = await Promise.all(
-      categoryNames.map((name) =>
-        prisma.eventCategory.create({
-          data: { name, slug: slugify(name, { lower: true, strict: true }) },
-        })
-      )
-    );
-    console.log(`✅ Created ${categories.length} new categories.`);
-  } else {
-    console.log(`✅ Found ${categories.length} existing categories.`);
-  }
-
-  // --- Transactional Creation Logic ---
-
-  // 1. Create an array to hold all our event creation promises
-  const eventCreationPromises = [];
-
-  console.log(
-    `🚀 Preparing ${TOTAL_EVENTS_TO_ADD} new events for a single transaction...`
-  );
-
-  for (let i = 0; i < TOTAL_EVENTS_TO_ADD; i++) {
-    const title = faker.company.catchPhrase() + " " + faker.word.noun();
-    const slug =
-      slugify(title, { lower: true, strict: true }) +
-      "-" +
-      faker.string.alphanumeric(6);
-    const startDate = faker.date.soon({ days: 180 });
-    const endDate = faker.date.soon({ days: 3, refDate: startDate });
-
-    const ticketTypesToCreate = [];
-    let totalQuantity = 0;
-    const numTicketTypes = faker.number.int({ min: 1, max: 3 });
-
-    for (let j = 0; j < numTicketTypes; j++) {
-      const quantity = faker.number.int({ min: 50, max: 400 });
-      totalQuantity += quantity;
-      ticketTypesToCreate.push({
-        name: ["General", "VIP", "Early Bird"][j] || `Tier ${j + 1}`,
-        price: parseFloat(faker.commerce.price({ min: 200, max: 5000 })),
-        quantity: quantity,
-      });
-    }
-
-    const imageUrls = Array.from(
-      { length: faker.number.int({ min: 2, max: 5 }) },
-      () => faker.image.urlLoremFlickr({ category: "event" })
-    );
-
-    const categoriesToConnect = [getRandomItem(categories)];
-    if (Math.random() > 0.6 && categories.length > 1) {
-      const secondCategory = getRandomItem(
-        categories.filter((c) => c.id !== categoriesToConnect[0].id)
-      );
-      if (secondCategory) categoriesToConnect.push(secondCategory);
-    }
-
-    const eventData = {
-      title,
-      slug,
-      description: faker.lorem.paragraphs(2),
-      location: `${faker.location.city()}, Maharashtra`,
-      startDate,
-      endDate,
-      type: getRandomItem(["PUBLIC", "PRIVATE"]),
-      status: "PUBLISHED",
-      isFeatured: faker.datatype.boolean(0.2),
-      maxAttendees: totalQuantity,
-      imageUrls,
-      primaryImage: imageUrls[0],
-      facilities: Array.from(
-        { length: faker.number.int({ min: 3, max: 5 }) },
-        () => faker.commerce.productAdjective()
-      ),
-      youshouldKnow: Array.from(
-        { length: faker.number.int({ min: 2, max: 3 }) },
-        () => faker.lorem.sentence()
-      ),
-      creatorId: adminUser.id,
-      categories: {
-        connect: categoriesToConnect.map((cat) => ({ id: cat.id })),
+  // 2. CREATE DEALERS (Crucial for Cars)
+  console.log("🏭 Seeding Dealers...");
+  const dealerPromises = Array.from({ length: 10 }).map(() =>
+    prisma.dealer.create({
+      data: {
+        name: faker.company.name() + " Motors",
+        email: faker.internet.email(),
+        city: getRandom(CITIES),
+        phone: faker.phone.number(),
+        isActive: true,
       },
-      ticketTypes: { create: ticketTypesToCreate },
+    })
+  );
+  // Execute dealer creation
+  // Note: Using Promise.all for small batches is fine
+  const dealers = [];
+  for (const p of dealerPromises) {
+    try {
+      dealers.push(await p);
+    } catch (e) {}
+  }
+  console.log(`✅ Created ${dealers.length} Dealers`);
+
+  // 3. CREATE CATEGORIES (Crucial for Events)
+  const catNames = ["Music", "Tech", "Auto Expo", "Workshop", "Meetup"];
+  const categories = [];
+  for (const name of catNames) {
+    const slug = slugify(name, { lower: true });
+    const cat = await prisma.eventCategory.upsert({
+      where: { slug },
+      update: {},
+      create: { name, slug },
+    });
+    categories.push(cat);
+  }
+  console.log("✅ Categories Ready");
+
+  // ====================================================
+  //  SEEDING CARS (BATCHED)
+  // ====================================================
+  console.log(`🚗 Generating ${TOTAL_CARS} Cars...`);
+
+  let carBatch = [];
+  for (let i = 0; i < TOTAL_CARS; i++) {
+    const brand = getRandom(BRANDS);
+    const model = faker.vehicle.model();
+    const title = `${brand} ${model} ${faker.vehicle.type()}`;
+    const price = parseFloat(
+      faker.commerce.price({ min: 500000, max: 20000000 })
+    );
+
+    // Logic: 20% Sold, 80% Available
+    const status = Math.random() > 0.8 ? "SOLD" : "AVAILABLE";
+
+    const carData = {
+      title: title,
+      description: faker.lorem.paragraph(),
+      status: status,
+      sellingPrice: price,
+      cutOffPrice: price * 1.2, // 20% higher MRP
+      ybtPrice: price,
+      registrationYear: faker.number.int({ min: 2015, max: 2025 }),
+      registrationNumber: faker.vehicle.vrm(),
+      kmsDriven: faker.number.int({ min: 0, max: 80000 }),
+      ownerCount: faker.number.int({ min: 1, max: 3 }),
+      insurance: Math.random() > 0.5 ? "Comprehensive" : "Third Party",
+      collectionType: "YBT", // Default
+
+      // Relations
+      dealerId: getRandom(dealers).id,
+
+      // Arrays
+      badges: Math.random() > 0.7 ? ["Trusted", "Verified"] : [],
+      specs: ["Engine: V8", "0-100: 4s", "Torque: 500nm"],
+      features: ["Sunroof", "Leather Seats", "Apple CarPlay", "360 Camera"],
+
+      // Filters
+      city: getRandom(CITIES),
+      state: "Maharashtra",
+      brand: brand,
+      fuelType: getRandom(["PETROL", "DIESEL", "HYBRID", "ELECTRIC"]),
+      transmission: getRandom(["AUTOMATIC", "MANUAL"]),
+
+      // Media
+      thumbnail: getRandom(CAR_IMAGES),
+      carImages: getRandomSubarray(CAR_IMAGES, 3), // Get 3 random images
+      videoUrls: Math.random() > 0.8 ? [SAMPLE_VIDEOS[0]] : [],
     };
 
-    // 2. Instead of awaiting here, we push the promise into the array
-    eventCreationPromises.push(prisma.event.create({ data: eventData }));
+    carBatch.push(prisma.car.create({ data: carData }));
+
+    // Execute Batch
+    if (carBatch.length >= BATCH_SIZE || i === TOTAL_CARS - 1) {
+      await prisma.$transaction(carBatch);
+      carBatch = [];
+      process.stdout.write(`.`); // Progress indicator
+    }
   }
+  console.log(`\n✅ ${TOTAL_CARS} Cars Seeded!`);
 
-  // 3. After the loop, execute all promises in a single transaction
-  console.log("📦 Sending batch create request to the database...");
-  await prisma.$transaction(eventCreationPromises);
+  // ====================================================
+  //  SEEDING EVENTS (BATCHED)
+  // ====================================================
+  console.log(`📅 Generating ${TOTAL_EVENTS} Events...`);
 
-  console.log(
-    `🎉 Transaction successful! ${TOTAL_EVENTS_TO_ADD} new events were added.`
-  );
+  let eventBatch = [];
+  for (let i = 0; i < TOTAL_EVENTS; i++) {
+    const title = faker.music.genre() + " Festival " + faker.location.city();
+
+    // Logic: 40% Past Events, 60% Upcoming (To test "Smart Sort")
+    const isUpcoming = Math.random() > 0.4;
+    const startDate = isUpcoming
+      ? faker.date.soon({ days: 90 }) // Next 90 days
+      : faker.date.recent({ days: 360 }); // Last year
+
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 6); // Lasts 6 hours
+
+    // Create tickets logic
+    const basePrice = parseFloat(faker.commerce.price({ min: 499, max: 5000 }));
+
+    const eventData = {
+      title: title,
+      slug:
+        slugify(title, { lower: true, strict: true }) +
+        "-" +
+        faker.string.alphanumeric(5),
+      description: faker.lorem.paragraphs(2),
+      type: "PUBLIC",
+      status: "PUBLISHED",
+      isFeatured: Math.random() > 0.9, // 10% featured
+      location: `${faker.location.streetAddress()}, ${getRandom(CITIES)}`,
+      startDate: startDate,
+      endDate: endDate,
+
+      // Images
+      primaryImage: getRandom(EVENT_IMAGES),
+      imageUrls: getRandomSubarray(EVENT_IMAGES, 3),
+
+      creatorId: admin.id,
+
+      // Connect Random Category
+      categories: {
+        connect: { id: getRandom(categories).id },
+      },
+
+      // Create Ticket Types inline
+      ticketTypes: {
+        create: [
+          {
+            name: "Early Bird",
+            price: basePrice,
+            quantity: 50,
+            quantitySold: faker.number.int({ min: 0, max: 50 }),
+          },
+          {
+            name: "VIP",
+            price: basePrice * 2.5,
+            quantity: 20,
+            quantitySold: faker.number.int({ min: 0, max: 10 }),
+          },
+        ],
+      },
+    };
+
+    eventBatch.push(prisma.event.create({ data: eventData }));
+
+    if (eventBatch.length >= BATCH_SIZE || i === TOTAL_EVENTS - 1) {
+      await prisma.$transaction(eventBatch);
+      eventBatch = [];
+      process.stdout.write(`.`);
+    }
+  }
+  console.log(`\n✅ ${TOTAL_EVENTS} Events Seeded!`);
 }
 
 main()
   .catch((e) => {
-    console.error("❌ An error occurred during the transaction:", e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
-    console.log("🔌 Database connection closed.");
   });
