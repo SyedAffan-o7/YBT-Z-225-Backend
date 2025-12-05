@@ -23,5 +23,8 @@ exports.createLock = async (ticketTypeId, quantity) => {
 
 exports.releaseLock = async (ticketTypeId, quantity) => {
   const lockKey = getLockKey(ticketTypeId);
-  await redis.decrBy(lockKey, quantity);
+  const currentVal = await redis.get(lockKey);
+  if (currentVal) {
+    await redis.decrBy(lockKey, quantity);
+  }
 };

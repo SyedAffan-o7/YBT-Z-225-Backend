@@ -4,7 +4,7 @@ const app = require("./app");
 const prisma = require("./utils/prisma");
 const redis = require("./utils/redis");
 const cron = require("node-cron");
-
+const { processStuckOrders } = require("./services/Cron/cleanupService");
 const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 
@@ -24,6 +24,11 @@ const connectAndStart = async () => {
     process.exit(1);
   }
 };
+
+cron.schedule("*/15 * * * *", () => {
+  console.log("Cron Job Triggered: Cleaning stuck orders...");
+  processStuckOrders();
+});
 
 // cron.schedule("*/4 * * * *", async () => {
 //   try {

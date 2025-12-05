@@ -4,22 +4,11 @@ const eventController = require("../../controllers/Events/eventController");
 const upload = require("../../middleware/upload");
 const validate = require("../../validators/Validator");
 
-const debugMiddleware = (req, res, next) => {
-  console.log("--- INSPECTING REQUEST BEFORE ZOD VALIDATION ---");
-  console.log("req.body:", req.body);
-  console.log("req.files:", req.files);
-  console.log("-------------------------------------------------");
-  next(); // Pass control to the next middleware (Zod)
-};
 const {
   createEventSchema,
   DeleteEventSchema,
 } = require("../../validators/EventValidator");
-const {
-  protect,
-  admin,
-  identifyUser,
-} = require("../../middleware/authMiddleware");
+const { protect, admin } = require("../../middleware/authMiddleware");
 
 router.post(
   "/",
@@ -44,17 +33,8 @@ router.patch(
   eventController.updateEventStatus
 );
 
-router.get(
-  "/user",
-  //identifyUser,
-  eventController.getPublicEvents
-);
-router.get(
-  "/admin",
-  //protect,
-  //admin,
-  eventController.getAllEventsForAdmin
-);
+router.get("/user", eventController.getPublicEvents);
+router.get("/admin", eventController.getAllEventsForAdmin);
 
 router.get(
   "/totaleventscount",
