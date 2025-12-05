@@ -141,7 +141,7 @@ exports.initiateBooking = async (userId, eventId, items) => {
   }
 
   const razorpayOptions = {
-    amount: pendingOrder.totalAmount * 100, // Amount in the smallest currency unit (paise)
+    amount: Math.round(pendingOrder.totalAmount * 100), // Amount in the smallest currency unit (paise)
     currency: "INR",
     receipt: `receipt_order_${pendingOrder.id}`, // A unique receipt ID
     notes: {
