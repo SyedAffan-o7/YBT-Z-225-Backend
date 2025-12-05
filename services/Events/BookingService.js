@@ -1,28 +1,21 @@
 const prisma = require("../../utils/prisma");
-const razorpay = require("../../config/razorpay"); // Your Razorpay instance
+const razorpay = require("../../config/razorpay");
 const crypto = require("crypto");
 const redisService = require("../redisService");
 
 const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
-  // Find the PENDING order using the Razorpay Order ID
-  console.log(
-    `🏁 [Finalizer] Attempting to finalize Order: ${razorpayOrderId}`
-  );
   const order = await tx.order.findFirst({
     where: { razorpayOrderId: razorpayOrderId, status: "PENDING" },
     include: { items: { include: { ticketType: true } } },
   });
 
   if (!order) {
-    // Order not found or already processed. This is not an error.
     console.log(
       `Order ${razorpayOrderId} not found or already processed. Acknowledging.`
     );
     return null;
   }
 
-  // Update the order status to COMPLETED
-  console.log(`🎉 [Finalizer] Marking Order as COMPLETED in DB.`);
   const completedOrder = await tx.order.update({
     where: { id: order.id },
     data: {
@@ -31,7 +24,6 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
     },
   });
 
-  // Create EventRegistration records for each ticket
   const registrationPromises = order.items.flatMap((item) =>
     Array.from({ length: item.quantity }, () =>
       tx.eventRegistration.create({
@@ -46,8 +38,6 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
   );
   await Promise.all(registrationPromises);
 
-  // IMPORTANT: Clear the ticket locks from Redis
-  console.log(`🔓 [Finalizer] Releasing Redis Locks.`);
   const lockPromises = order.items.map((item) =>
     redisService.releaseLock(item.ticketTypeId, item.quantity)
   );
@@ -57,7 +47,6 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
 };
 
 exports.initiateBooking = async (userId, eventId, items) => {
-  console.log(`🔒 [Service] Attempting to lock tickets in Redis...`);
   for (const item of items) {
     const ticketType = await prisma.ticketType.findUnique({
       where: { id: item.ticketTypeId },
@@ -86,7 +75,6 @@ exports.initiateBooking = async (userId, eventId, items) => {
   }
 
   let pendingOrder;
-  console.log(`✅ [Service] Redis lock acquired. Starting DB Transaction...`);
   try {
     pendingOrder = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
@@ -126,8 +114,6 @@ exports.initiateBooking = async (userId, eventId, items) => {
       });
     });
   } catch (error) {
-    console.error("Database transaction failed, releasing Redis locks.", error);
-    console.log(`💥 [Service] Transaction failed! Rolling back Redis locks.`);
     for (const item of items) {
       await redisService.releaseLock(item.ticketTypeId, item.quantity);
     }
@@ -141,9 +127,9 @@ exports.initiateBooking = async (userId, eventId, items) => {
   }
 
   const razorpayOptions = {
-    amount: Math.round(pendingOrder.totalAmount * 100), // Amount in the smallest currency unit (paise)
+    amount: Math.round(pendingOrder.totalAmount * 100),
     currency: "INR",
-    receipt: `receipt_order_${pendingOrder.id}`, // A unique receipt ID
+    receipt: `receipt_order_${pendingOrder.id}`,
     notes: {
       bookingId: pendingOrder.id,
       userId: userId,
@@ -177,9 +163,8 @@ exports.initiateBooking = async (userId, eventId, items) => {
 };
 
 exports.confirmBooking = async (webhookBody, signature) => {
-  // 1. Verify the webhook signature
   const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET) // Use webhook secret
+    .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
     .update(JSON.stringify(webhookBody))
     .digest("hex");
 
@@ -187,7 +172,6 @@ exports.confirmBooking = async (webhookBody, signature) => {
     throw new Error("InvalidWebhookSignature");
   }
 
-  // 2. Extract data from the webhook payload
   const razorpayOrderId = webhookBody.payload.payment.entity.order_id;
   const razorpayPaymentId = webhookBody.payload.payment.entity.id;
 
@@ -195,7 +179,6 @@ exports.confirmBooking = async (webhookBody, signature) => {
     throw new Error("OrderIdMissingFromPayload");
   }
 
-  // 3. Call the helper function inside a transaction
   return prisma.$transaction(async (tx) => {
     return await _finalizeBooking(tx, razorpayOrderId, razorpayPaymentId);
   });
@@ -207,8 +190,6 @@ exports.verifyPayment = async (
   razorpayPaymentId,
   razorpaySignature
 ) => {
-  // 1. Verify the payment signature (DIFFERENT from webhook)
-  // This uses your KEY SECRET, not webhook secret
   const body = razorpayOrderId + "|" + razorpayPaymentId;
 
   const expectedSignature = crypto
@@ -222,8 +203,6 @@ exports.verifyPayment = async (
     throw err;
   }
 
-  // 2. We must also check that the user verifying this
-  //    is the user who created the order.
   const order = await prisma.order.findFirst({
     where: { razorpayOrderId: razorpayOrderId },
     select: { userId: true },
@@ -243,14 +222,11 @@ exports.verifyPayment = async (
     throw err;
   }
 
-  // 3. Signature is valid and user is authorized.
-  //    Run the same finalization logic as the webhook.
   return prisma.$transaction(async (tx) => {
     return await _finalizeBooking(tx, razorpayOrderId, razorpayPaymentId);
   });
 };
 
-// --- ADD THIS HELPER TOO ---
 exports.findBookingByRazorpayId = async (razorpayOrderId) => {
   return prisma.order.findFirst({
     where: { razorpayOrderId: razorpayOrderId },
@@ -280,7 +256,6 @@ exports.getBookings = async (userId) => {
     },
   });
 
-  // 1. The .map() function just returns the plain booking object
   const bookings = orders
     .map((order) => {
       const firstItem = order.items[0];
@@ -292,20 +267,17 @@ exports.getBookings = async (userId) => {
         return null;
       }
 
-      // --- No "data:" key here ---
       return {
         bookingId: order.id,
         razorpayOrderId: order.razorpayOrderId,
         totalAmount: order.totalAmount,
         bookedAt: order.createdAt,
 
-        // Event Details
         eventTitle: event.title,
         eventSlug: event.slug,
         eventPrimaryImage: event.thumbnail,
         eventStartDate: event.startDate,
 
-        // Ticket Details
         tickets: order.items.map((item) => ({
           name: item.ticketType.name,
           quantity: item.quantity,
@@ -313,12 +285,11 @@ exports.getBookings = async (userId) => {
         })),
       };
     })
-    .filter(Boolean); // Filter out any null (empty) orders
+    .filter(Boolean);
 
-  // 2. Wrap the final 'bookings' array in your standard response object
   return {
     data: bookings,
-    pagination: { hasMore: false, nextCursor: null }, // We fetched all, so no more pages
-    filters: null, // No filters were applied in this query
+    pagination: { hasMore: false, nextCursor: null },
+    filters: null,
   };
 };

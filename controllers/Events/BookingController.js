@@ -1,18 +1,13 @@
-// In your EventBookingController.js
-const BookingService = require("../../services/Events/BookingService"); // or your path
+const BookingService = require("../../services/Events/BookingService");
 
 exports.initiateBooking = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { eventId, items } = req.body; // Data is already validated by Zod
+    const { eventId, items } = req.body;
     const orderDetails = await BookingService.initiateBooking(
       userId,
       eventId,
       items
-    );
-    console.log(
-      "🚀 [1] CONTROLLER: Initiate Booking requested by User:",
-      req.user.id
     );
     res.status(201).json({
       success: true,
@@ -29,11 +24,7 @@ exports.initiateBooking = async (req, res) => {
 exports.handlePaymentWebhook = async (req, res) => {
   try {
     const signature = req.headers["x-razorpay-signature"];
-    console.log("🤖 [3-Webhook] CONTROLLER: Webhook hit by Razorpay.");
-    // Call the service to handle all logic
     await BookingService.confirmBooking(req.body, signature);
-
-    // Respond to Razorpay to acknowledge receipt of the webhook
     res.status(200).json({ status: "ok" });
   } catch (error) {
     console.error("Webhook processing error:", error);
@@ -42,8 +33,6 @@ exports.handlePaymentWebhook = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid signature." });
     }
-    // Don't send a 500 error to Razorpay, as they may retry.
-    // A 400 Bad Request is often better if the payload is malformed.
     res
       .status(400)
       .json({ success: false, message: "Webhook processing failed." });
@@ -54,15 +43,14 @@ exports.verifyBooking = async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
-    const userId = req.user.id; // From 'protect' middleware
+    const userId = req.user.id;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res
         .status(400)
         .json({ success: false, message: "Missing payment details." });
     }
-    console.log("🕵️ [3-Frontend] CONTROLLER: verifyBooking hit by Browser.");
-    // Call the new service function
+
     const completedOrder = await BookingService.verifyPayment(
       userId,
       razorpay_order_id,
@@ -71,8 +59,6 @@ exports.verifyBooking = async (req, res) => {
     );
 
     if (!completedOrder) {
-      // This means the booking was already processed (e.g., by the webhook)
-      // This is a "success" case, but we need the booking ID.
       const order = await BookingService.findBookingByRazorpayId(
         razorpay_order_id
       );
@@ -89,7 +75,6 @@ exports.verifyBooking = async (req, res) => {
         .json({ success: false, message: "Booking not found." });
     }
 
-    // The payment was verified by this call just now
     res.status(200).json({
       success: true,
       message: "Booking confirmed successfully!",

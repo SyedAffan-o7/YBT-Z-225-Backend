@@ -30,16 +30,6 @@ cron.schedule("*/15 * * * *", () => {
   processStuckOrders();
 });
 
-// cron.schedule("*/4 * * * *", async () => {
-//   try {
-//     console.log("🕒 Pinging database to keep it alive...");
-//     await prisma.$queryRaw`SELECT 1`;
-//     console.log("✅ Database pinged successfully.");
-//   } catch (error) {
-//     console.error("❌ Error pinging the database:", error);
-//   }
-// });
-
 const shutdown = async (signal) => {
   console.log(`\n${signal} received. Shutting down gracefully...`);
   try {
@@ -62,3 +52,13 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 connectAndStart();
+
+// cron.schedule("*/4 * * * *", async () => {
+//   try {
+//     console.log("🕒 Pinging database to keep it alive...");
+//     await prisma.$queryRaw`SELECT 1`;
+//     console.log("✅ Database pinged successfully.");
+//   } catch (error) {
+//     console.error("❌ Error pinging the database:", error);
+//   }
+// });
