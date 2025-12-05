@@ -407,6 +407,7 @@ model Order {
   razorpayPaymentId String?
   userId            Int
   createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now()) @updatedAt
   registrations     EventRegistration[]
   user              User                @relation(fields: [userId], references: [id])
   items             OrderItem[]

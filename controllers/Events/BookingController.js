@@ -10,7 +10,10 @@ exports.initiateBooking = async (req, res) => {
       eventId,
       items
     );
-
+    console.log(
+      "🚀 [1] CONTROLLER: Initiate Booking requested by User:",
+      req.user.id
+    );
     res.status(201).json({
       success: true,
       message: "Booking initiated. Please proceed to payment.",
@@ -26,7 +29,7 @@ exports.initiateBooking = async (req, res) => {
 exports.handlePaymentWebhook = async (req, res) => {
   try {
     const signature = req.headers["x-razorpay-signature"];
-
+    console.log("🤖 [3-Webhook] CONTROLLER: Webhook hit by Razorpay.");
     // Call the service to handle all logic
     await BookingService.confirmBooking(req.body, signature);
 
@@ -58,7 +61,7 @@ exports.verifyBooking = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Missing payment details." });
     }
-
+    console.log("🕵️ [3-Frontend] CONTROLLER: verifyBooking hit by Browser.");
     // Call the new service function
     const completedOrder = await BookingService.verifyPayment(
       userId,

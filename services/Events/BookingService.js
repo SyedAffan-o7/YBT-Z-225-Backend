@@ -5,6 +5,9 @@ const redisService = require("../redisService");
 
 const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
   // Find the PENDING order using the Razorpay Order ID
+  console.log(
+    `🏁 [Finalizer] Attempting to finalize Order: ${razorpayOrderId}`
+  );
   const order = await tx.order.findFirst({
     where: { razorpayOrderId: razorpayOrderId, status: "PENDING" },
     include: { items: { include: { ticketType: true } } },
@@ -19,6 +22,7 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
   }
 
   // Update the order status to COMPLETED
+  console.log(`🎉 [Finalizer] Marking Order as COMPLETED in DB.`);
   const completedOrder = await tx.order.update({
     where: { id: order.id },
     data: {
@@ -43,6 +47,7 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
   await Promise.all(registrationPromises);
 
   // IMPORTANT: Clear the ticket locks from Redis
+  console.log(`🔓 [Finalizer] Releasing Redis Locks.`);
   const lockPromises = order.items.map((item) =>
     redisService.releaseLock(item.ticketTypeId, item.quantity)
   );
@@ -52,6 +57,7 @@ const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
 };
 
 exports.initiateBooking = async (userId, eventId, items) => {
+  console.log(`🔒 [Service] Attempting to lock tickets in Redis...`);
   for (const item of items) {
     const ticketType = await prisma.ticketType.findUnique({
       where: { id: item.ticketTypeId },
@@ -80,6 +86,7 @@ exports.initiateBooking = async (userId, eventId, items) => {
   }
 
   let pendingOrder;
+  console.log(`✅ [Service] Redis lock acquired. Starting DB Transaction...`);
   try {
     pendingOrder = await prisma.$transaction(async (tx) => {
       let totalAmount = 0;
@@ -120,6 +127,7 @@ exports.initiateBooking = async (userId, eventId, items) => {
     });
   } catch (error) {
     console.error("Database transaction failed, releasing Redis locks.", error);
+    console.log(`💥 [Service] Transaction failed! Rolling back Redis locks.`);
     for (const item of items) {
       await redisService.releaseLock(item.ticketTypeId, item.quantity);
     }

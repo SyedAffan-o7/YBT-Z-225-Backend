@@ -46,7 +46,7 @@ exports.processStuckOrders = async () => {
         await prisma.$transaction(async (tx) => {
           await tx.order.update({
             where: { id: order.id },
-            data: { status: "CANCELLED" },
+            data: { status: "FAILED" },
           });
 
           for (const item of order.items) {
