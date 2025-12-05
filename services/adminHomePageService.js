@@ -16,7 +16,7 @@ exports.getHeroSlides = async () => {
         select: { title: true, thumbnail: true },
       },
       event: {
-        select: { title: true, primaryImage: true },
+        select: { title: true, thumbnail: true },
       },
     },
   });

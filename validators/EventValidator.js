@@ -128,19 +128,29 @@ const createEventSchema = z
       .object({
         images: z.array(z.any()).optional(),
         videos: z.array(z.any()).optional(),
+        mobileImages: z.array(z.any()).optional(),
+        mobileVideos: z.array(z.any()).optional(),
       })
       .refine(
         (files) =>
           (files.images?.length || 0) > 0 || (files.videos?.length || 0) > 0,
-        "At least one image or video is required."
+        "At least one Desktop image or video is required."
       )
       .refine(
         (files) => (files.images?.length || 0) <= 10,
-        "You can upload a maximum of 10 images."
+        "You can upload a maximum of 10 Desktop images."
+      )
+      .refine(
+        (files) => (files.mobileImages?.length || 0) <= 10,
+        "You can upload a maximum of 10 mobile images."
       )
       .refine(
         (files) => (files.videos?.length || 0) <= 5,
-        "You can upload a maximum of 5 videos."
+        "You can upload a maximum of 5 Desktop videos."
+      )
+      .refine(
+        (files) => (files.mobileVideos?.length || 0) <= 5,
+        "You can upload a maximum of 5 mobile videos."
       ),
   })
   .refine((data) => data.body.endDate > data.body.startDate, {

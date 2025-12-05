@@ -31,23 +31,107 @@ exports.createBike = async (bikeData) => {
   return newBike;
 };
 
-//Create a search by title endpoint
-exports.getAllBikes = async (queryParams) => {
-  // 1. Sanitize and prepare inputs
-  const { cursor, searchTerm, brands } = queryParams;
-  const limit = parseInt(queryParams.limit) || 10;
-  const allowedSorts = ["newest", "oldest", "name_asc", "name_desc"];
-  const sortBy = allowedSorts.includes(queryParams.sortBy)
-    ? queryParams.sortBy
-    : "newest";
+exports.searchBikes = async (options = {}) => {
+  const { searchTerm, cursor, sortBy = "newest", limit = 10 } = options;
+  const where = {
+    status: "AVAILABLE",
+  };
 
-  const where = {};
   if (searchTerm) {
     where.OR = [
       { title: { contains: searchTerm, mode: "insensitive" } },
-      { description: { contains: searchTerm, mode: "insensitive" } },
+      { brand: { contains: searchTerm, mode: "insensitive" } },
     ];
   }
+
+  const orderByMap = {
+    name_asc: [{ title: "asc" }, { id: "asc" }],
+    name_desc: [{ title: "desc" }, { id: "asc" }],
+    price_asc: [{ sellingPrice: "asc" }, { id: "asc" }],
+    price_desc: [{ sellingPrice: "desc" }, { id: "asc" }],
+    oldest: [{ createdAt: "asc" }, { id: "asc" }],
+    newest: [{ createdAt: "desc" }, { id: "desc" }],
+  };
+
+  const orderBy = orderByMap[sortBy] || orderByMap.newest;
+
+  const prismaQuery = {
+    take: limit + 1,
+    where,
+    orderBy,
+    select: {
+      id: true,
+      title: true,
+      brand: true,
+      badges: true,
+      specs: true,
+      registrationYear: true,
+      ybtPrice: true,
+      thumbnail: true,
+    },
+  };
+
+  if (cursor) {
+    prismaQuery.cursor = { id: cursor };
+    prismaQuery.skip = 1; // Skip the cursor item itself
+  }
+
+  const results = await prisma.bike.findMany(prismaQuery);
+  const hasMore = results.length > limit;
+  const bikes = hasMore ? results.slice(0, limit) : results;
+  const nextCursor = hasMore ? cars[cars.length - 1].id : null;
+  return {
+    data: bikes,
+    pagination: {
+      hasMore,
+      nextCursor,
+      totalFetched: bikes.length,
+    },
+  };
+};
+
+exports.getBikeFilters = async () => {
+  // 1. Get all unique brands
+  const brandsRaw = await prisma.bike.findMany({
+    where: { status: "AVAILABLE" }, // Only show brands that actually have cars for sale
+    select: { brand: true },
+    distinct: ["brand"],
+    orderBy: { brand: "asc" },
+  });
+
+  // 2. Get Min/Max Price and Year (for sliders/ranges)
+  const stats = await prisma.bike.aggregate({
+    where: { status: "AVAILABLE" },
+    _min: {
+      sellingPrice: true,
+      registrationYear: true,
+    },
+    _max: {
+      sellingPrice: true,
+      registrationYear: true,
+    },
+  });
+
+  return {
+    brands: brandsRaw.map((b) => b.brand).filter(Boolean), // Returns ["Audi", "BMW", ...]
+    minPrice: stats._min.sellingPrice || 0,
+    maxPrice: stats._max.sellingPrice || 0,
+    minYear: stats._min.registrationYear || 2000,
+    maxYear: stats._max.registrationYear || new Date().getFullYear(),
+  };
+};
+
+exports.getAllBikes = async (options = {}) => {
+  const {
+    cursor,
+    //searchTerm,
+    brands,
+    sortBy = "newest",
+    limit = 10,
+  } = options;
+
+  const where = {};
+
   if (brands) {
     const brandList = brands
       .split(",")
@@ -74,6 +158,7 @@ exports.getAllBikes = async (queryParams) => {
       brand: true,
       specs: true,
       badges: true,
+      registrationYear: true,
       ybtPrice: true,
       thumbnail: true,
       createdAt: true,
@@ -93,7 +178,7 @@ exports.getAllBikes = async (queryParams) => {
   return {
     data: bikes,
     pagination: { hasMore, nextCursor },
-    filters: { searchTerm: searchTerm || null, brands: brands || null, sortBy },
+    filters: { brands: brands || null, sortBy },
   };
 };
 

@@ -97,17 +97,17 @@ model HeroSlide {
   createdAt DateTime @default(now())
 
   // Content Links
-  carId   Int?
-  car     Car?   @relation(fields: [carId], references: [id], onDelete: SetNull)
-  eventId Int?
-  event   Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
-
+  carId                Int?
+  car                  Car?       @relation(fields: [carId], references: [id], onDelete: SetNull)
+  eventId              Int?
+  event                Event?     @relation(fields: [eventId], references: [id], onDelete: SetNull)
   // Overrides
-  customTitle     String?
-  customSubtitle  String?
-  customLinkUrl   String?
-  customAssetUrl  String?
-  customAssetType AssetType? @default(IMAGE)
+  customTitle          String?
+  customSubtitle       String?
+  customLinkUrl        String?
+  customAssetUrl       String?
+  customMobileAssetUrl String?
+  customAssetType      AssetType? @default(IMAGE)
 
   @@index([carId])
   @@index([eventId])
@@ -215,8 +215,11 @@ model Car {
   fuelType           FuelType       @default(PETROL)
   mileage            Float?
   thumbnail          String?
+  mobileThumbnail    String?
   carImages          String[]
+  carImagesMobile    String[]
   videoUrls          String[]
+  videoUrlsMobile    String[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   heroSlides         HeroSlide[]
@@ -259,8 +262,11 @@ model Bike {
   bikeUSP            String?
   fuelType           FuelType        @default(PETROL)
   bikeImages         String[]
+  bikeImagesMobile   String[]
   videoUrls          String[]
+  videoUrlsMobile    String[]
   thumbnail          String?
+  mobileThumbnail    String?
   status             VehicleStatus   @default(AVAILABLE)
   dealerId           Int
   createdAt          DateTime        @default(now())
@@ -271,6 +277,8 @@ model Bike {
   @@index([title])
   @@index([brand])
   @@index([status])
+  @@index([registrationYear])
+  @@index([sellingPrice])
   @@index([dealerId])
   @@index([createdAt, id])
 }
@@ -328,29 +336,32 @@ model BookingLead {
 }
 
 model Event {
-  id            Int                 @id @default(autoincrement())
-  title         String
-  slug          String              @unique
-  description   String?
-  type          EventType           @default(PUBLIC)
-  status        EventStatus         @default(DRAFT)
-  isFeatured    Boolean?            @default(false)
-  debug_flag    String?             @default("not_updated")
-  maxAttendees  Int? //default it to no. of tickets
-  location      String?
-  startDate     DateTime
-  endDate       DateTime
-  imageUrls     String[]
-  primaryImage  String?
-  videoUrls     String[]
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  creatorId     Int
-  heroSlides    HeroSlide[]
-  creator       User                @relation("EventsCreatedByAdmin", fields: [creatorId], references: [id], onDelete: Cascade)
-  registrations EventRegistration[]
-  facilities    String[]
-  youshouldKnow String[]
+  id              Int                 @id @default(autoincrement())
+  title           String
+  slug            String              @unique
+  description     String?
+  type            EventType           @default(PUBLIC)
+  status          EventStatus         @default(DRAFT)
+  isFeatured      Boolean?            @default(false)
+  debug_flag      String?             @default("not_updated")
+  maxAttendees    Int? //default it to no. of tickets
+  location        String?
+  startDate       DateTime
+  endDate         DateTime
+  imageUrls       String[]
+  imageUrlsMobile String[]
+  thumbnail       String?
+  mobileThumbnail String?
+  videoUrlsMobile String[]
+  videoUrls       String[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  creatorId       Int
+  heroSlides      HeroSlide[]
+  creator         User                @relation("EventsCreatedByAdmin", fields: [creatorId], references: [id], onDelete: Cascade)
+  registrations   EventRegistration[]
+  facilities      String[]
+  youshouldKnow   String[]
 
   //Relations
 

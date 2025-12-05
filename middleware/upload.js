@@ -12,12 +12,21 @@ const storage = new CloudinaryStorage({
     let allowed_formats;
     let resource_type;
 
-    if (file.fieldname === "images") {
-      folder = "youngboytoyz/images";
+    const isImage =
+      file.fieldname === "images" || file.fieldname === "mobileImages";
+    const isVideo =
+      file.fieldname === "videos" || file.fieldname === "mobileVideos";
+
+    if (isImage) {
+      const subFolder = file.fieldname === "mobileImages" ? "/mobile" : "";
+      folder = `youngboytoyz/images${subFolder}`;
+
       allowed_formats = IMAGE_FORMATS;
       resource_type = "image";
-    } else if (file.fieldname === "videos") {
-      folder = "youngboytoyz/videos";
+    } else if (isVideo) {
+      const subFolder = file.fieldname === "mobileVideos" ? "/mobile" : "";
+      folder = `youngboytoyz/videos${subFolder}`;
+
       allowed_formats = VIDEO_FORMATS;
       resource_type = "video";
     } else {
@@ -39,16 +48,19 @@ const upload = multer({
   limits: {
     fileSize: 100 * 1024 * 1024,
 
-    files: 15,
+    files: 30,
   },
   fileFilter: (req, file, cb) => {
     let allowed;
-    if (file.fieldname === "images") {
+    if (file.fieldname === "images" || file.fieldname === "mobileImages") {
       allowed = IMAGE_FORMATS;
-    } else if (file.fieldname === "videos") {
+    } else if (
+      file.fieldname === "videos" ||
+      file.fieldname === "mobileVideos"
+    ) {
       allowed = VIDEO_FORMATS;
     } else {
-      return cb(new Error("Invalid file field name."), false);
+      return cb(new Error(`Invalid file field name: ${file.fieldname}`), false);
     }
 
     const ext = file.originalname.split(".").pop().toLowerCase();

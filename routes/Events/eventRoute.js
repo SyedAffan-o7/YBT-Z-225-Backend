@@ -28,8 +28,9 @@ router.post(
   upload.fields([
     { name: "images", maxCount: 10 },
     { name: "videos", maxCount: 5 },
+    { name: "mobileImages", maxCount: 10 },
+    { name: "mobileVideos", maxCount: 5 },
   ]),
-  debugMiddleware,
   validate(createEventSchema),
   eventController.createEvent
 );

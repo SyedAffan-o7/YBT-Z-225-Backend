@@ -15,6 +15,9 @@ exports.createCar = async (carData) => {
     imageUrls,
     videoUrls,
     primaryImage,
+    mobileImageUrls,
+    mobileVideoUrls,
+    primaryImageMobile,
     ...restOfCarData
   } = carData;
 
@@ -23,6 +26,9 @@ exports.createCar = async (carData) => {
     carImages: imageUrls,
     videoUrls: videoUrls,
     thumbnail: primaryImage,
+    carImagesMobile: mobileImageUrls,
+    videoUrlsMobile: mobileVideoUrls,
+    mobileThumbnail: primaryImageMobile,
     dealer: {
       connect: { id: dealerId },
     },
@@ -54,6 +60,7 @@ exports.fetchLatestAdditions = async () => {
       id: true,
       title: true,
       thumbnail: true,
+      mobileThumbnail: true,
       badges: true,
       brand: true,
     },
@@ -77,6 +84,8 @@ exports.getCarById = async (id) => {
       ybtPrice: true,
       thumbnail: true,
       carImages: true,
+      mobileThumbnail: true,
+      carImagesMobile: true,
       videoUrls: true,
       engine: true,
       kmsDriven: true,
@@ -207,7 +216,7 @@ exports.getAllCars = async (options = {}) => {
       ybtPrice: true,
       tuningStage: true,
       thumbnail: true,
-      createdAt: true,
+      mobileThumbnail: true,
     },
   };
   if (cursor) {
@@ -222,6 +231,75 @@ exports.getAllCars = async (options = {}) => {
   return {
     data: cars,
     pagination: { hasMore, nextCursor },
+  };
+};
+
+exports.searchCars = async (options = {}) => {
+  const {
+    searchTerm,
+    collectionType,
+    cursor,
+    sortBy = "newest",
+    limit = 10,
+  } = options;
+  const where = {
+    status: "AVAILABLE",
+  };
+  if (collectionType) {
+    where.collectionType = collectionType.toUpperCase();
+  }
+  if (searchTerm) {
+    where.OR = [
+      { title: { contains: searchTerm, mode: "insensitive" } },
+      { brand: { contains: searchTerm, mode: "insensitive" } },
+    ];
+  }
+
+  const orderByMap = {
+    name_asc: [{ title: "asc" }, { id: "asc" }],
+    name_desc: [{ title: "desc" }, { id: "asc" }],
+    price_asc: [{ sellingPrice: "asc" }, { id: "asc" }],
+    price_desc: [{ sellingPrice: "desc" }, { id: "asc" }],
+    oldest: [{ createdAt: "asc" }, { id: "asc" }],
+    newest: [{ createdAt: "desc" }, { id: "desc" }],
+  };
+
+  const orderBy = orderByMap[sortBy] || orderByMap.newest;
+
+  const prismaQuery = {
+    take: limit + 1,
+    where,
+    orderBy,
+    select: {
+      id: true,
+      title: true,
+      brand: true,
+      badges: true,
+      specs: true,
+      registrationYear: true,
+      ybtPrice: true,
+      tuningStage: true,
+      thumbnail: true,
+      mobileThumbnail: true,
+    },
+  };
+
+  if (cursor) {
+    prismaQuery.cursor = { id: cursor };
+    prismaQuery.skip = 1; // Skip the cursor item itself
+  }
+
+  const results = await prisma.car.findMany(prismaQuery);
+  const hasMore = results.length > limit;
+  const cars = hasMore ? results.slice(0, limit) : results;
+  const nextCursor = hasMore ? cars[cars.length - 1].id : null;
+  return {
+    data: cars,
+    pagination: {
+      hasMore,
+      nextCursor,
+      totalFetched: cars.length,
+    },
   };
 };
 

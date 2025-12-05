@@ -122,7 +122,8 @@ exports.getAllEvents = async (options = {}) => {
       maxAttendees: true,
       startDate: true,
       endDate: true,
-      primaryImage: true,
+      thumbnail: true,
+      mobileThumbnail: true,
 
       // --- Relations to "include" ---
       // This is how you move your 'include' logic inside 'select'
@@ -184,9 +185,12 @@ exports.getEventBySlug = async (slug) => {
       startDate: true,
       endDate: true,
       location: true,
-      primaryImage: true,
+      thumbnail: true,
+      mobileThumbnail: true,
       imageUrls: true,
+      imageUrlsMobile: true,
       videoUrls: true,
+      videoUrlsMobile: true,
       facilities: true,
       youshouldKnow: true,
       categories: {

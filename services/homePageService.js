@@ -11,6 +11,7 @@ exports.fetchHeroSlides = async () => {
           title: true,
           description: true,
           thumbnail: true,
+          mobileThumbnail: true,
         },
       },
       event: {
@@ -18,7 +19,8 @@ exports.fetchHeroSlides = async () => {
           slug: true,
           title: true,
           description: true,
-          primaryImage: true,
+          thumbnail: true,
+          mobileThumbnail: true,
         },
       },
     },

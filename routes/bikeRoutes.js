@@ -21,7 +21,9 @@ router.post(
   validate(createBikeSchema),
   bikeController.createBike
 );
+router.get("/filters", bikeController.getFilters);
 router.get("/", bikeController.getAllBikes);
+router.get("/search", bikeController.searchBikes);
 router.get("/count", bikeController.getTotalBikes);
 router.get("/:id", validate(bikeIdParamSchema), bikeController.getBikeById);
 router.put("/:id", validate(updateBikeSchema), bikeController.updateBike);

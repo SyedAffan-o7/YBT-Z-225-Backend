@@ -11,16 +11,16 @@ const server = http.createServer(app);
 const connectAndStart = async () => {
   try {
     await prisma.$connect();
-    console.log("✅ Database connected successfully");
+    console.log("Database connected successfully");
 
     await redis.ping();
-    console.log("✅ Redis connected successfully");
+    console.log("Redis connected successfully");
 
     server.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("❌ Failed to connect to a required service:", error);
+    console.error("Failed to connect to a required service:", error);
     process.exit(1);
   }
 };
@@ -41,9 +41,9 @@ const shutdown = async (signal) => {
     server.close(async () => {
       console.log("HTTP server closed.");
       await prisma.$disconnect();
-      console.log("🔌 Database disconnected.");
+      console.log("Database disconnected.");
       await redis.quit();
-      console.log("🔌 Redis disconnected.");
+      console.log("Redis disconnected.");
 
       process.exit(0);
     });

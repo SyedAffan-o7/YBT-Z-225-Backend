@@ -99,6 +99,8 @@ const createCarSchema = z.object({
     .object({
       images: z.array(z.any()).optional(),
       videos: z.array(z.any()).optional(),
+      mobileImages: z.array(z.any()).optional(),
+      mobileVideos: z.array(z.any()).optional(),
     })
     .refine(
       (files) =>
@@ -107,11 +109,19 @@ const createCarSchema = z.object({
     )
     .refine(
       (files) => (files.images?.length || 0) <= 10,
-      "You can upload a maximum of 10 images."
+      "You can upload a maximum of 10 desktop images."
+    )
+    .refine(
+      (files) => (files.mobileImages?.length || 0) <= 10,
+      "You can upload a maximum of 10 mobile images."
     )
     .refine(
       (files) => (files.videos?.length || 0) <= 5,
-      "You can upload a maximum of 5 videos."
+      "You can upload a maximum of 5 desktop videos."
+    )
+    .refine(
+      (files) => (files.mobileVideos?.length || 0) <= 5,
+      "You can upload a maximum of 5 mobile videos."
     ),
 });
 

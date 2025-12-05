@@ -294,7 +294,7 @@ exports.getBookings = async (userId) => {
         // Event Details
         eventTitle: event.title,
         eventSlug: event.slug,
-        eventPrimaryImage: event.primaryImage,
+        eventPrimaryImage: event.thumbnail,
         eventStartDate: event.startDate,
 
         // Ticket Details

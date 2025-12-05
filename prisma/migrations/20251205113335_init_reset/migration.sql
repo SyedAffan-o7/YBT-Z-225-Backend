@@ -49,6 +49,7 @@ CREATE TABLE "HeroSlide" (
     "customSubtitle" TEXT,
     "customLinkUrl" TEXT,
     "customAssetUrl" TEXT,
+    "customMobileAssetUrl" TEXT,
     "customAssetType" "AssetType" DEFAULT 'IMAGE',
 
     CONSTRAINT "HeroSlide_pkey" PRIMARY KEY ("id")
@@ -157,7 +158,11 @@ CREATE TABLE "Car" (
     "fuelType" "FuelType" NOT NULL DEFAULT 'PETROL',
     "mileage" DOUBLE PRECISION,
     "thumbnail" TEXT,
+    "mobileThumbnail" TEXT,
     "carImages" TEXT[],
+    "carImagesMobile" TEXT[],
+    "videoUrls" TEXT[],
+    "videoUrlsMobile" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -186,7 +191,11 @@ CREATE TABLE "Bike" (
     "bikeUSP" TEXT,
     "fuelType" "FuelType" NOT NULL DEFAULT 'PETROL',
     "bikeImages" TEXT[],
+    "bikeImagesMobile" TEXT[],
+    "videoUrls" TEXT[],
+    "videoUrlsMobile" TEXT[],
     "thumbnail" TEXT,
+    "mobileThumbnail" TEXT,
     "status" "VehicleStatus" NOT NULL DEFAULT 'AVAILABLE',
     "dealerId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -253,7 +262,11 @@ CREATE TABLE "events" (
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
     "imageUrls" TEXT[],
-    "primaryImage" TEXT,
+    "imageUrlsMobile" TEXT[],
+    "thumbnail" TEXT,
+    "mobileThumbnail" TEXT,
+    "videoUrlsMobile" TEXT[],
+    "videoUrls" TEXT[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "creatorId" INTEGER NOT NULL,
@@ -383,6 +396,9 @@ CREATE UNIQUE INDEX "Workshop_slug_key" ON "Workshop"("slug");
 CREATE UNIQUE INDEX "Car_registrationNumber_key" ON "Car"("registrationNumber");
 
 -- CreateIndex
+CREATE INDEX "Car_collectionType_createdAt_idx" ON "Car"("collectionType", "createdAt" DESC);
+
+-- CreateIndex
 CREATE INDEX "Car_designerId_idx" ON "Car"("designerId");
 
 -- CreateIndex
@@ -401,6 +417,12 @@ CREATE INDEX "Car_createdAt_id_idx" ON "Car"("createdAt", "id");
 CREATE INDEX "Car_status_idx" ON "Car"("status");
 
 -- CreateIndex
+CREATE INDEX "Car_sellingPrice_idx" ON "Car"("sellingPrice");
+
+-- CreateIndex
+CREATE INDEX "Car_registrationYear_idx" ON "Car"("registrationYear");
+
+-- CreateIndex
 CREATE INDEX "Car_dealerId_createdAt_idx" ON "Car"("dealerId", "createdAt");
 
 -- CreateIndex
@@ -414,6 +436,12 @@ CREATE INDEX "Bike_brand_idx" ON "Bike"("brand");
 
 -- CreateIndex
 CREATE INDEX "Bike_status_idx" ON "Bike"("status");
+
+-- CreateIndex
+CREATE INDEX "Bike_registrationYear_idx" ON "Bike"("registrationYear");
+
+-- CreateIndex
+CREATE INDEX "Bike_sellingPrice_idx" ON "Bike"("sellingPrice");
 
 -- CreateIndex
 CREATE INDEX "Bike_dealerId_idx" ON "Bike"("dealerId");
@@ -455,10 +483,7 @@ CREATE INDEX "BookingLead_email_idx" ON "BookingLead"("email");
 CREATE UNIQUE INDEX "events_slug_key" ON "events"("slug");
 
 -- CreateIndex
-CREATE INDEX "events_startDate_id_idx" ON "events"("startDate" DESC, "id" DESC);
-
--- CreateIndex
-CREATE INDEX "events_status_startDate_id_idx" ON "events"("status", "startDate" DESC, "id" DESC);
+CREATE INDEX "events_status_startDate_id_idx" ON "events"("status", "startDate", "id");
 
 -- CreateIndex
 CREATE INDEX "events_title_id_idx" ON "events"("title", "id");
@@ -471,6 +496,9 @@ CREATE UNIQUE INDEX "EventCategory_name_key" ON "EventCategory"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "EventCategory_slug_key" ON "EventCategory"("slug");
+
+-- CreateIndex
+CREATE INDEX "TicketType_eventId_quantity_price_idx" ON "TicketType"("eventId", "quantity", "price");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Order_razorpayOrderId_key" ON "Order"("razorpayOrderId");

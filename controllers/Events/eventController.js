@@ -11,11 +11,15 @@ exports.createEvent = async (req, res) => {
     const { title, categoryIds, ticketTypes, ...restOfBody } = validatedData;
 
     const imageFiles = req.files?.images || [];
-    const videoFiles = req.files?.videos || []; // <-- NEW
+    const videoFiles = req.files?.videos || [];
+    const mobileImageFiles = req.files?.mobileImages || [];
+    const mobileVideoFiles = req.files?.mobileVideos || [];
 
-    // Map files to their Cloudinary URLs (file.path)
+    // 3. Map to Cloudinary URLs
     const imageUrls = imageFiles.map((file) => file.path);
     const videoUrls = videoFiles.map((file) => file.path);
+    const mobileImageUrls = mobileImageFiles.map((file) => file.path);
+    const mobileVideoUrls = mobileVideoFiles.map((file) => file.path);
 
     const eventData = {
       ...restOfBody,
@@ -25,9 +29,12 @@ exports.createEvent = async (req, res) => {
       categories: {
         connect: categoryIds.map((id) => ({ id })),
       },
-      imageUrls: imageUrls, // <-- Populated from file uploads
-      videoUrls: videoUrls, // <-- NEW: Populated from file uploads
-      primaryImage: imageUrls[0] || null,
+      imageUrls: imageUrls,
+      imageUrlsMobile: mobileImageUrls,
+      videoUrls: videoUrls,
+      videoUrlsMobile: mobileVideoUrls,
+      thumbnail: imageUrls[0] || null,
+      mobileThumbnail: mobileImageUrls[0] || null,
     };
 
     if (validatedData.ticketTypes && validatedData.ticketTypes.length > 0) {

@@ -38,11 +38,41 @@ exports.createBike = async (req, res) => {
 
 exports.getAllBikes = async (req, res) => {
   try {
-    const responseData = await bikeService.getAllBikes(req.query);
+    const options = { ...req.query };
+
+    if (req.query.limit) {
+      options.limit = parseInt(req.query.limit, 10);
+    }
+
+    if (req.query.cursor) {
+      options.cursor = parseInt(req.query.cursor, 10);
+    }
+    const responseData = await bikeService.getAllBikes(options);
     res.status(200).json({ success: true, ...responseData });
   } catch (error) {
     console.error("❌ Error in getAllBikes controller:", error);
     res.status(500).json({ success: false, message: "Failed to fetch bikes" });
+  }
+};
+
+exports.searchBikes = async (req, res) => {
+  try {
+    const { q, cursor, sortBy, limit } = req.query;
+
+    const result = await bikeService.searchBikes({
+      searchTerm: q,
+      cursor: cursor ? parseInt(cursor) : undefined,
+      sortBy,
+      limit: limit ? parseInt(limit) : 10,
+    });
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error in searching:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch cars." });
   }
 };
 
@@ -131,6 +161,18 @@ exports.deleteBike = async (req, res) => {
         .json({ success: false, message: "Bike not found." });
     }
     res.status(500).json({ success: false, message: "Failed to delete bike." });
+  }
+};
+
+exports.getFilters = async (req, res) => {
+  try {
+    const filters = await bikeService.getBikeFilters();
+    res.set("Cache-Control", "public, max-age=3600");
+    res.status(200).json({ success: true, data: filters });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch filters" });
   }
 };
 

@@ -17,6 +17,7 @@ exports.getHeroSlides = async (req, res) => {
       const linkedItem = slide.car || slide.event;
 
       let assetUrl = slide.customAssetUrl;
+      let mobileAssetUrl = slide.customMobileAssetUrl;
       let assetType = slide.customAssetType;
 
       if (!assetUrl) {
@@ -29,7 +30,11 @@ exports.getHeroSlides = async (req, res) => {
             linkedItem?.primaryImage ||
             "/images/default-hero.jpg";
           assetType = "IMAGE";
+          mobileAssetUrl = linkedItem?.mobileThumbnail;
         }
+      }
+      if (!mobileAssetUrl) {
+        mobileAssetUrl = assetUrl;
       }
 
       const linkUrl =
@@ -47,6 +52,7 @@ exports.getHeroSlides = async (req, res) => {
           slide.customSubtitle ?? truncate(linkedItem?.description, 100),
         linkUrl: linkUrl,
         assetUrl: assetUrl,
+        mobileAssetUrl: mobileAssetUrl,
         assetType: assetType,
       };
     });
