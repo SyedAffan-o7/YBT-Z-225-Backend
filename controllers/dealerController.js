@@ -101,7 +101,7 @@ exports.deleteDealer = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid dealer ID provided." });
     }
-    await dealerService.deleteDealerById(id);
+    await dealerService.deleteDealer(id);
     res
       .status(200)
       .json({ success: true, message: "Dealer deleted successfully." });

@@ -6,7 +6,7 @@ router.get("/", (req, res) => {
     message: "YBT API is up and running!",
   });
 });
-//Only need to add zod validation to update fields, and get fields, in cars and bikes
+
 const userRoutes = require("./userRoutes");
 const authRoutes = require("./authRoutes");
 const carRoutes = require("./carRoutes");

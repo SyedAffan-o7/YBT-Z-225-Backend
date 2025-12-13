@@ -11,6 +11,7 @@ const storage = new CloudinaryStorage({
     let folder;
     let allowed_formats;
     let resource_type;
+    let transformation = [];
 
     const isImage =
       file.fieldname === "images" || file.fieldname === "mobileImages";
@@ -23,6 +24,17 @@ const storage = new CloudinaryStorage({
 
       allowed_formats = IMAGE_FORMATS;
       resource_type = "image";
+      transformation = [
+        {
+          overlay: "watermark_logo",
+          gravity: "north_east",
+          x: 20,
+          y: 40,
+          width: 0.15,
+          flags: "relative",
+          opacity: 80,
+        },
+      ];
     } else if (isVideo) {
       const subFolder = file.fieldname === "mobileVideos" ? "/mobile" : "";
       folder = `youngboytoyz/videos${subFolder}`;
@@ -39,6 +51,7 @@ const storage = new CloudinaryStorage({
       folder,
       allowed_formats,
       resource_type,
+      transformation,
     };
   },
 });
