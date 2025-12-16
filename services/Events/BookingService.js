@@ -5,15 +5,16 @@ const redisService = require("../redisService");
 
 const _finalizeBooking = async (tx, razorpayOrderId, razorpayPaymentId) => {
   const order = await tx.order.findFirst({
-    where: { razorpayOrderId: razorpayOrderId, status: "PENDING" },
+    where: { razorpayOrderId: razorpayOrderId },
     include: { items: { include: { ticketType: true } } },
   });
-
   if (!order) {
-    console.log(
-      `Order ${razorpayOrderId} not found or already processed. Acknowledging.`
-    );
+    console.log(`Order ${razorpayOrderId} does not exist in DB.`);
     return null;
+  }
+  if (order.status === "COMPLETED") {
+    console.log(`Order ${razorpayOrderId} is already fully processed.`);
+    return order;
   }
 
   const completedOrder = await tx.order.update({
@@ -113,6 +114,14 @@ exports.initiateBooking = async (userId, eventId, items) => {
         include: { items: true },
       });
     });
+
+    try {
+      for (const item of items) {
+        await redisService.releaseLock(item.ticketTypeId, item.quantity);
+      }
+    } catch (e) {
+      console.warn("Post-transaction lock release failed (harmless):", e);
+    }
   } catch (error) {
     for (const item of items) {
       await redisService.releaseLock(item.ticketTypeId, item.quantity);
@@ -155,7 +164,6 @@ exports.initiateBooking = async (userId, eventId, items) => {
           where: { id: item.ticketTypeId },
           data: { quantity: { increment: item.quantity } },
         });
-        await redisService.releaseLock(item.ticketTypeId, item.quantity);
       }
     });
     throw new Error("Failed to create payment order. Please try again.");
@@ -163,17 +171,23 @@ exports.initiateBooking = async (userId, eventId, items) => {
 };
 
 exports.confirmBooking = async (webhookBody, signature) => {
+  const bodyData = Buffer.isBuffer(webhookBody)
+    ? webhookBody
+    : JSON.stringify(webhookBody);
   const expectedSignature = crypto
     .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
-    .update(JSON.stringify(webhookBody))
+    .update(bodyData)
     .digest("hex");
 
   if (expectedSignature !== signature) {
     throw new Error("InvalidWebhookSignature");
   }
+  const parsedBody = Buffer.isBuffer(webhookBody)
+    ? JSON.parse(webhookBody.toString())
+    : webhookBody;
 
-  const razorpayOrderId = webhookBody.payload.payment.entity.order_id;
-  const razorpayPaymentId = webhookBody.payload.payment.entity.id;
+  const razorpayOrderId = parsedBody.payload.payment.entity.order_id;
+  const razorpayPaymentId = parsedBody.payload.payment.entity.id;
 
   if (!razorpayOrderId) {
     throw new Error("OrderIdMissingFromPayload");

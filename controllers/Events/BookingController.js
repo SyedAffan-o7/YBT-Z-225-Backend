@@ -24,7 +24,8 @@ exports.initiateBooking = async (req, res) => {
 exports.handlePaymentWebhook = async (req, res) => {
   try {
     const signature = req.headers["x-razorpay-signature"];
-    await BookingService.confirmBooking(req.body, signature);
+    const bodyToVerify = req.rawBody || req.body;
+    await BookingService.confirmBooking(bodyToVerify, signature);
     res.status(200).json({ status: "ok" });
   } catch (error) {
     console.error("Webhook processing error:", error);
@@ -57,23 +58,6 @@ exports.verifyBooking = async (req, res) => {
       razorpay_payment_id,
       razorpay_signature
     );
-
-    if (!completedOrder) {
-      const order = await BookingService.findBookingByRazorpayId(
-        razorpay_order_id
-      );
-
-      if (order && order.userId === userId) {
-        return res.status(200).json({
-          success: true,
-          message: "Booking already verified.",
-          data: { bookingId: order.id },
-        });
-      }
-      return res
-        .status(404)
-        .json({ success: false, message: "Booking not found." });
-    }
 
     res.status(200).json({
       success: true,

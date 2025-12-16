@@ -5,7 +5,13 @@ const apiRouter = require("./routes/Index");
 
 const app = express();
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(cors());
 app.use(helmet());
 
